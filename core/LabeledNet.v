@@ -228,6 +228,59 @@ Section LabeledStepExecution.
   Qed.
 End LabeledStepExecution.
 
+Section LabeledStepAsync.
+  Context `{labeled_multi_params : LabeledMultiParams}.
+
+  Inductive lb_step_async : lb_step_relation network label (name * (input + list output)) :=
+  | LStepAsync_deliver : forall net net' p xs ys out d l lb,
+      nwPackets net = xs ++ p :: ys ->
+      lb_net_handlers (pDst p) (pSrc p) (pBody p) (nwState net (pDst p)) = (lb, out, d, l) ->
+      net' = mkNetwork (send_packets (pDst p) l ++ xs ++ ys)
+                       (update name_eq_dec (nwState net) (pDst p) d) ->
+      lb_step_async net lb net' [(pDst p, inr out)]
+  | LStepAsync_input : forall h net net' out inp d l lb,
+      lb_input_handlers h inp (nwState net h) = (lb, out, d, l) ->
+      net' = mkNetwork (send_packets h l ++ nwPackets net)
+                       (update name_eq_dec (nwState net) h d) ->
+      lb_step_async net lb net' [(h, inl inp); (h, inr out)]
+  | LStepAsync_stutter : forall net, lb_step_async net label_silent net [].
+
+  Lemma step_async_star_lb_step_reachable :
+    step_star_lb_step_reachable lb_step_async step_async step_async_init.
+  Proof.
+    rewrite /step_star_lb_step_reachable.
+    move => net l.
+    move => net' tr tr' H_star H_st.
+    invcs H_st.
+    - set net' := {| nwPackets := _ ; nwState := _ |}.
+      apply (@refl_trans_1n_trace_trans _ _ _ _ net) => //.
+      have ->: [(pDst p, inr out)] = [(pDst p, inr out)] ++ [] by [].
+      apply: (@RT1nTStep _ _ _ _ net'); last exact: RT1nTBase.
+      apply: (@StepAsync_deliver _ _ _ _ _ xs ys _ d l0) => //.
+      rewrite /net_handlers /= /unlabeled_net_handlers /=.
+      repeat break_let.
+      by tuple_inversion.
+    - set net' := {| nwPackets := _ ; nwState := _ |}.
+      apply (@refl_trans_1n_trace_trans _ _ _ _ net) => //.
+      have ->: [(h, inl inp); (h, inr out)] = [(h, inl inp); (h, inr out)] ++ [] by [].
+      apply: (@RT1nTStep _ _ _ _ net'); last exact: RT1nTBase.
+      apply: StepAsync_input => //.
+      rewrite /input_handlers /= /unlabeled_input_handlers /=.
+      repeat break_let.
+      by tuple_inversion.
+    - by have ->: tr' ++ [] = tr' by auto with datatypes.
+  Qed.
+
+  Lemma step_async_star_lb_step_execution :
+    forall s, event_step_star step_async step_async_init (hd s) ->
+         lb_step_execution lb_step_async s ->
+         always (now (event_step_star step_async step_async_init)) s.
+  Proof.
+    apply: step_star_lb_step_execution.
+    exact: step_async_star_lb_step_reachable.
+  Qed.
+End LabeledStepAsync.
+
 Section LabeledStepFailure.
   Context `{labeled_multi_params : LabeledMultiParams}.
 
