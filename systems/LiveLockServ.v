@@ -2120,8 +2120,21 @@ Section LockServ.
     intros.
     pose proof (@clients_move_way_up_in_queue n 0 c s).
     repeat concludes. conclude_using ltac:(intuition; congruence).
-    eapply eventually_monotonic_simple; [|eauto].
-    intros. simpl in *. intuition.
+    repeat concludes.
+    eapply eventually_monotonic_simple.
+    - intros.
+      assert (H_suff: Nth (queue (nwState (evt_a (hd s0)) Server)) 0 c /\
+                      (0 = 0 -> In {| pSrc := Server; pDst := Client c; pBody := Locked |} (nwPackets (evt_a (hd s0)))) ->
+                      In {| pSrc := Server; pDst := Client c; pBody := Locked |} (nwPackets (evt_a (hd s0)))).
+        intros.
+        break_and.
+        concludes.
+        auto.
+      apply H_suff.
+      find_apply_hyp_goal.
+    - apply H3.
+      intuition.
+      omega.
   Qed.
 
   Lemma InputLock_Lock :
