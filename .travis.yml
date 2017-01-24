@@ -14,7 +14,6 @@ env:
     - COQ_VERSION=8.6
     - SSREFLECT_VERSION=1.6.1
     - VERDI_RAFT_BRANCH=coq-8.6
-    - STRUCTTACT_BRANCH=master
   matrix:
     - DOWNSTREAM=none
     - DOWNSTREAM=verdi-raft

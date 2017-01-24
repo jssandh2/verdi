@@ -22,12 +22,17 @@ default: Makefile.coq
 quick: Makefile.coq
 	$(MAKE) -f Makefile.coq quick
 
+install: Makefile.coq
+	$(MAKE) -f Makefile.coq install
+
 Makefile.coq: _CoqProject
-	coq_makefile -f _CoqProject -o Makefile.coq
+	coq_makefile -f _CoqProject -o Makefile.coq \
+          -extra-phony 'distclean' 'clean' \
+	    'rm -f $$(join $$(dir $$(VFILES)),$$(addprefix .,$$(notdir $$(patsubst %.v,%.aux,$$(VFILES)))))'
 
 clean:
 	if [ -f Makefile.coq ]; then \
-	  $(MAKE) -f Makefile.coq cleanall; fi
+	  $(MAKE) -f Makefile.coq distclean; fi
 	rm -f Makefile.coq
 
 lint:
@@ -37,4 +42,4 @@ lint:
 distclean: clean
 	rm -f _CoqProject
 
-.PHONY: default quick clean lint distclean
+.PHONY: default quick clean lint distclean install
